@@ -7,33 +7,43 @@ using PixelEngine;
 
 namespace voxelspace
 {
-	public class VoxelSpaceSharp : Game
-	{
-		public Sprite Color { get; set; }
-		public Sprite Height { get; set; }
-		static void Main(string[] args)
-		{
-			// Create an instance
-			VoxelSpaceSharp rp = new VoxelSpaceSharp();
+    public class VoxelSpaceSharp : Game
+    {
+        public Sprite Color { get; set; }
+        public Sprite Height { get; set; }
+        public Camera Camera { get; set; }
+        public float timer { get; set; }
 
-			rp.Color = Sprite.Load("textures\\C1W.png");
-		    rp.Height = Sprite.Load("textures\\H.png");
+        static void Main(string[] args)
+        {
+            // Create an instance
+            VoxelSpaceSharp rp = new VoxelSpaceSharp();
 
-			// Construct the 100x100 game window with 5x5 pixels
-			rp.Construct(rp.Color.Width, rp.Color.Height, 1, 1);
+            rp.Color = Sprite.Load("textures\\C1W.png");
+            rp.Height = Sprite.Load("textures\\H.png");
+
+            // Construct the 100x100 game window with 5x5 pixels
+            rp.Construct(rp.Color.Width, rp.Color.Height, 1, 1);
+            rp.Camera = new Camera(0, 0, 512, 512);
+
+            // Start and show a window
+            rp.Start();
+        }
+
+        // Called once per frame
+        public override void OnUpdate(float elapsed)
+        {
+            timer += 0.05f;
+            DrawSprite(Point.Origin, Color);
+
+            Camera.OriginX = (int)(Sin(timer) * 512f + 512f);
+            Camera.OriginY = (int)(Cos(timer) * 512f + 512f);
+            Camera.TargetX = (int)(Sin(timer) * 256f + 512f);
+            Camera.TargetY = (int)(Cos(timer) * 256f + 512f);
+
+            Camera.Draw(this);
+        }
 
 
-			// Start and show a window
-			rp.Start();
-		}
-
-		// Called once per frame
-		public override void OnUpdate(float elapsed)
-		{
-			// Loop through all the pixels
-			for (int i = 0; i < ScreenWidth; i++)
-				for (int j = 0; j < ScreenHeight; j++)
-					Draw(i, j, Color[i,j]); // draw a pixel from the color sprite
-		}
-	}
+    }
 }
