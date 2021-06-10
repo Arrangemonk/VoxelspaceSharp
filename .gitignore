@@ -1,0 +1,6 @@
+
+.vs/voxelspace/v16/.suo
+*.testlog
+*.manifest
+voxelspace/bin
+voxelspace/obj

@@ -9,14 +9,18 @@ namespace voxelspace
 {
 	public class RandomPixels : Game
 	{
+		public Sprite Color { get; set; }
+		public Sprite Height { get; set; }
 		static void Main(string[] args)
 		{
 			// Create an instance
 			RandomPixels rp = new RandomPixels();
 
+			rp.Color = Sprite.Load("textures\\C1W.png");
+		    rp.Height = Sprite.Load("textures\\H.png");
+
 			// Construct the 100x100 game window with 5x5 pixels
-			rp.Construct(100, 100, 5, 5);
-			var sprite = new Sprite(1024, 1024);
+			rp.Construct(rp.Color.Width, rp.Color.Height, 1, 1);
 
 
 			// Start and show a window
@@ -29,7 +33,7 @@ namespace voxelspace
 			// Loop through all the pixels
 			for (int i = 0; i < ScreenWidth; i++)
 				for (int j = 0; j < ScreenHeight; j++)
-					Draw(i, j, Pixel.Random()); // Draw a random pixel
+					Draw(i, j, Color[i,j]); // draw a pixel from the color sprite
 		}
 	}
 }
