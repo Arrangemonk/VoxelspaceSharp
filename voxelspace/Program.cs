@@ -7,14 +7,14 @@ using PixelEngine;
 
 namespace voxelspace
 {
-	public class RandomPixels : Game
+	public class VoxelSpaceSharp : Game
 	{
 		public Sprite Color { get; set; }
 		public Sprite Height { get; set; }
 		static void Main(string[] args)
 		{
 			// Create an instance
-			RandomPixels rp = new RandomPixels();
+			VoxelSpaceSharp rp = new VoxelSpaceSharp();
 
 			rp.Color = Sprite.Load("textures\\C1W.png");
 		    rp.Height = Sprite.Load("textures\\H.png");
