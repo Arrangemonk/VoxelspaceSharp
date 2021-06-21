@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using OpenTK.Graphics.OpenGL;
 using PixelEngine;
 
 namespace voxelspace
@@ -12,38 +13,64 @@ namespace voxelspace
         public Sprite Color { get; set; }
         public Sprite Height { get; set; }
         public Camera Camera { get; set; }
-        public float timer { get; set; }
+        public float Timer { get; set; }
+
 
         static void Main(string[] args)
         {
             // Create an instance
-            VoxelSpaceSharp rp = new VoxelSpaceSharp();
+            VoxelSpaceSharp game = new VoxelSpaceSharp();
 
-            rp.Color = Sprite.Load("textures\\C1W.png");
-            rp.Height = Sprite.Load("textures\\H.png");
+            game.Color = Sprite.Load("textures\\C1W.png");
+            game.Height = Sprite.Load("textures\\D1.png");
 
-            // Construct the 100x100 game window with 5x5 pixels
-            rp.Construct(rp.Color.Width, rp.Color.Height, 1, 1);
-            rp.Camera = new Camera(0, 0, 512, 512);
+            var screenwidth = 320;
+            var screenheight = 240;
+
+            game.Construct(screenwidth, screenheight, 2, 2);
+            game.Camera = new Camera(game,512, 512);
 
             // Start and show a window
-            rp.Start();
+            game.Start();
         }
 
-        // Called once per frame
+        public override void OnKeyDown(Key k)
+        {
+            switch(k)
+            {
+                case Key.W:
+                case Key.Up:
+                    Camera.Speed +=1f;
+                    break;
+                case Key.S:
+                case Key.Down:
+                    Camera.Speed -= 1f;
+                    break;
+                case Key.A:
+                case Key.Left:
+                    Camera.Angle += 1f;
+                    break;
+                case Key.D:
+                case Key.Right:
+                    Camera.Angle -= 1f;
+                    break;
+                case Key.Q:
+                case Key.Control:
+                    Camera.Height -= 1f;
+                    break;
+                case Key.E:
+                case Key.Shift:
+                    Camera.Height += 1f;
+                    break;
+            }
+        }
+
         public override void OnUpdate(float elapsed)
         {
-            timer += 0.05f;
-            DrawSprite(Point.Origin, Color);
-
-            Camera.OriginX = (int)(Sin(timer) * 512f + 512f);
-            Camera.OriginY = (int)(Cos(timer) * 512f + 512f);
-            Camera.TargetX = (int)(Sin(timer) * 256f + 512f);
-            Camera.TargetY = (int)(Cos(timer) * 256f + 512f);
-
-            Camera.Draw(this);
+            Timer += 0.005f;
+            
+            Camera.Update(Timer);
+            Camera.Render(120, 120, 500, ScreenWidth, ScreenHeight, Color, Height);
         }
-
-
     }
 }
