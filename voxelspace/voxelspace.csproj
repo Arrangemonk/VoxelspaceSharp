@@ -69,6 +69,12 @@
     <Content Include="textures\C1W.png">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
+    <Content Include="textures\carebean.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="textures\carebeanheight.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
     <Content Include="textures\D1.png">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>

@@ -29,10 +29,11 @@ namespace voxelspace
 
         public VoxelSpaceSharp() : base()
         {
-            Color = Sprite.Load("textures\\C1W.png");
-            Height = Sprite.Load("textures\\D1.png");
+            //new Pixel(102, 163, 225)
+            Color = Sprite.Load("textures\\carebean.png");
+            Height = Sprite.Load("textures\\carebeanheight.png");
             Construct(320, 240, 2, 2);
-            Camera = new Camera(this, Color, Height, new Pixel(102, 163, 225), 512, 512);
+            Camera = new Camera(this, Color, Height, new Pixel(100, 200, 225), 512, 512);
         }
 
         public override void OnKeyDown(Key k)
@@ -90,9 +91,9 @@ namespace voxelspace
         {
             Camera.Update();
             if (HQ)
-                Camera.RenderHQ(120, 120, 1000, ScreenWidth, ScreenHeight);
+                Camera.RenderHQ(120, 60, 1000, ScreenWidth, ScreenHeight);
             else
-                Camera.Render(120, 120, 1000, ScreenWidth, ScreenHeight);
+                Camera.Render(120, 60, 1000, ScreenWidth, ScreenHeight);
             if (Debug)
             {
                 DrawText(Point.Origin, Camera.Speed.ToString(), Pixel.Presets.Red);
