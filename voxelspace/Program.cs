@@ -10,30 +10,29 @@ namespace voxelspace
 {
     public class VoxelSpaceSharp : Game
     {
+        private readonly TimeSpan Threshold = new TimeSpan(0, 0, 0, 0, 300);
+
         public Sprite Color { get; set; }
         public Sprite Height { get; set; }
         public Camera Camera { get; set; }
-        public float Timer { get; set; }
         public bool Debug { get; set; }
         public bool HQ { get; set; }
+        public Key? LastKey { get; set; }
+        public DateTime Stamp { get; set; }
 
 
         static void Main(string[] args)
         {
-            // Create an instance
             VoxelSpaceSharp game = new VoxelSpaceSharp();
-
-            game.Color = Sprite.Load("textures\\C1W.png");
-            game.Height = Sprite.Load("textures\\D1.png");
-
-            var screenwidth = 320;
-            var screenheight = 240;
-
-            game.Construct(screenwidth, screenheight, 2, 2);
-            game.Camera = new Camera(game, 512, 512);
-
-            // Start and show a window
             game.Start();
+        }
+
+        public VoxelSpaceSharp() : base()
+        {
+            Color = Sprite.Load("textures\\C1W.png");
+            Height = Sprite.Load("textures\\D1.png");
+            Construct(320, 240, 2, 2);
+            Camera = new Camera(this, Color, Height, new Pixel(102, 163, 225), 512, 512);
         }
 
         public override void OnKeyDown(Key k)
@@ -65,23 +64,35 @@ namespace voxelspace
                     Camera.Height = Math.Min(255f, Camera.Height + 2.0f);
                     break;
                 case Key.Escape:
-                    Debug = !Debug;
-                    break;
+                    {
+                        if (k == LastKey && DateTime.Now - Stamp < Threshold)
+                            break;
+                        Debug = !Debug;
+                        LastKey = k;
+                        Stamp = DateTime.Now;
+                        break;
+                    }
                 case Key.Space:
-                    HQ = !HQ;
+                    {
+                        if (k == LastKey && DateTime.Now - Stamp < Threshold)
+                            break;
+                        HQ = !HQ;
+                        LastKey = k;
+                        Stamp = DateTime.Now;
+                        break;
+                    }
+                default:
                     break;
             }
         }
 
         public override void OnUpdate(float elapsed)
         {
-            Timer += 0.005f;
-
-            Camera.Update(Timer);
+            Camera.Update();
             if (HQ)
-                Camera.RenderHQ(120, 120, 500, ScreenWidth, ScreenHeight, Color, Height);
+                Camera.RenderHQ(120, 120, 1000, ScreenWidth, ScreenHeight);
             else
-                Camera.Render(120, 120, 500, ScreenWidth, ScreenHeight, Color, Height);
+                Camera.Render(120, 120, 1000, ScreenWidth, ScreenHeight);
             if (Debug)
             {
                 DrawText(Point.Origin, Camera.Speed.ToString(), Pixel.Presets.Red);

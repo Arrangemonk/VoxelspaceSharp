@@ -10,24 +10,32 @@ namespace voxelspace
 {
     public class Camera
     {
-        public Camera(Game g,float originx, float originy,float fov = 90.0f)
-        {
-            Game = g;
-            OriginX = originx;
-            OriginY = originy;
-            Fov = fov;
-            Speed = 0;
-            Height = 120;
-        }
+        private static readonly float Pi = (float)Math.PI;
         public Game Game { get; private set; }
+        public Sprite ColorMap { get; private set; }
+        public Sprite HeightMap { get; private set; }
         public float OriginX { get; set; }
         public float OriginY { get; set; }
         public float Angle { get; set; }
         public float Fov { get; set; }
         public float Speed { get; set; }
         public float Height { get; set; }
+        private Pixel ClrColor { get; set; }
 
-        public void Update(float dt)
+        public Camera(Game g, Sprite colormap, Sprite heightmap,Pixel clrColor, float originx, float originy,float fov = 90.0f)
+        {
+            Game = g;
+            ColorMap = colormap;
+            HeightMap = heightmap;
+            ClrColor = clrColor;
+            OriginX = originx;
+            OriginY = originy;
+            Fov = fov;
+            Speed = 0;
+            Height = 120;
+        }
+
+        public void Update()
         {
             float sinphi = Game.Sin(GetRadian(Angle));
             float cosphi = Game.Cos(GetRadian(Angle));
@@ -36,9 +44,14 @@ namespace voxelspace
             OriginY -= cosphi * Speed;
         }
 
-        public void Render(int horizon, int scale_height, int distance, int screen_width, int screen_height, Sprite colorMap, Sprite heightmap)
+        private float GetRadian(float degrees)
         {
-            Game.Clear(clrColor);
+            return Pi * degrees / 180.0f;
+        }
+
+        public void Render(int horizon, int scale_height, int distance, int screen_width, int screen_height)
+        {
+            Game.Clear(ClrColor);
 
             var yBuffer = new float[screen_width];
             var aBuffer = new float[screen_width];
@@ -70,14 +83,14 @@ namespace voxelspace
                     float tmp_pLeftX = pLeftX + (dx * x);
                     float tmp_pLeftY = pLeftY + (dy * x);
 
-                    float heightOfHeightMap = heightmap.getColorAtNN(tmp_pLeftX, tmp_pLeftY).R;
+                    float heightOfHeightMap = HeightMap.getColorAtNN(tmp_pLeftX, tmp_pLeftY).R;
                     float height_on_screen = (Height - heightOfHeightMap) * zinverse + horizon;
 
                     if (height_on_screen < yBuffer[x])
                     {
-                        Pixel color = colorMap.getColorAtNN(tmp_pLeftX, tmp_pLeftY);
+                        Pixel color = ColorMap.getColorAtNN(tmp_pLeftX, tmp_pLeftY);
 
-                        color = Helpers.interpolate(clrColor, color, Math.Min(fogamount * aBuffer[x],1.0f));
+                        color = Helpers.interpolate(ClrColor, color, Math.Min(fogamount * aBuffer[x],1.0f));
                         Game.DrawColumn(x, height_on_screen, yBuffer[x], color);
 
                         yBuffer[x] = height_on_screen;
@@ -86,9 +99,9 @@ namespace voxelspace
             }
         }
 
-        public void RenderHQ(int horizon, int scale_height, int distance, int screen_width, int screen_height, Sprite colorMap, Sprite heightmap)
+        public void RenderHQ(int horizon, int scale_height, int distance, int screen_width, int screen_height)
         {
-            Game.Clear(clrColor);
+            Game.Clear(ClrColor);
 
             var yBuffer = new float[screen_width];
             var cBuffer = new Pixel[screen_width];
@@ -96,7 +109,7 @@ namespace voxelspace
             var aBuffer = new float[screen_width];
             var distanceInvers = 1.0f / distance;
             var screen_width_inverse = 1.0f / screen_width;
-            var groundColor = colorMap.getColorAt(OriginX, OriginY);
+            var groundColor = ColorMap.getColorAt(OriginX, OriginY);
             for (int i = 0; i < screen_width; i++)
             {
                 yBuffer[i] = screen_height;
@@ -123,13 +136,13 @@ namespace voxelspace
                 {
                     float tmp_pLeftX = pLeftX + (dx * x);
                     float tmp_pLeftY = pLeftY + (dy * x);
-                    float heightOfHeightMap = heightmap.getColorAt(tmp_pLeftX, tmp_pLeftY).R;
+                    float heightOfHeightMap = HeightMap.getColorAt(tmp_pLeftX, tmp_pLeftY).R;
                     float height_on_screen = (Height - heightOfHeightMap) * zinverse + horizon;
 
                     if (height_on_screen < yBuffer[x])
                     {
-                        Pixel color = colorMap.getColorAt(tmp_pLeftX, tmp_pLeftY);
-                        color = Helpers.interpolate(clrColor, color, Math.Min(fogamount * aBuffer[x], 1.0f));
+                        Pixel color = ColorMap.getColorAt(tmp_pLeftX, tmp_pLeftY);
+                        color = Helpers.interpolate(ClrColor, color, Math.Min(fogamount * aBuffer[x], 1.0f));
                         Game.DrawColorColumn(x, height_on_screen, yBuffer[x], color, vBuffer[x] ? cBuffer[x] : color);
                         yBuffer[x] = height_on_screen;
                         cBuffer[x] = color;
@@ -143,12 +156,5 @@ namespace voxelspace
             }
         }
 
-        private static readonly float Pi = (float)Math.PI;
-        private static readonly Pixel clrColor = new Pixel(102, 163, 225);
-
-        private float GetRadian(float degrees)
-        {
-            return Pi * degrees / 180.0f;
-        }
     }
 }

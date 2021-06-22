@@ -10,71 +10,11 @@ namespace voxelspace
 {
     public static class Helpers
     {
-        public static float getLength(Game g, float aX, float aY, float bX, float bY)
+        public static float GetLength(Game g, float aX, float aY, float bX, float bY)
         {
             var tmpx = Math.Abs(aX - bX);
             var tmpy = Math.Abs(aY - bY);
             return g.Power((tmpx * tmpx) + (tmpy * tmpy), 0.5f);
-        }
-
-        public static void DrawLine(this Game game, int p1x, int p1y, int p2x, int p2y, Pixel col)
-        {
-            int x, y, dx, dy, dx1, dy1, px, py, xe, ye, i;
-            dx = p2x - p1x; dy = p2y - p1y;
-            dx1 = Math.Abs(dx); dy1 = Math.Abs(dy);
-            px = 2 * dy1 - dx1; py = 2 * dx1 - dy1;
-            if (dy1 <= dx1)
-            {
-                if (dx >= 0)
-                {
-                    x = p1x; y = p1y; xe = p2x;
-                }
-                else
-                {
-                    x = p2x; y = p2y; xe = p1x;
-                }
-
-                game.Draw(x, y, col);
-
-                for (i = 0; x < xe; i++)
-                {
-                    x = x + 1;
-                    if (px < 0)
-                        px = px + 2 * dy1;
-                    else
-                    {
-                        if ((dx < 0 && dy < 0) || (dx > 0 && dy > 0)) y = y + 1; else y = y - 1;
-                        px = px + 2 * (dy1 - dx1);
-                    }
-                    game.Draw(x, y, col);
-                }
-            }
-            else
-            {
-                if (dy >= 0)
-                {
-                    x = p1x; y = p1y; ye = p2y;
-                }
-                else
-                {
-                    x = p2x; y = p2y; ye = p1y;
-                }
-
-                game.Draw(x, y, col);
-
-                for (i = 0; y < ye; i++)
-                {
-                    y = y + 1;
-                    if (py <= 0)
-                        py = py + 2 * dx1;
-                    else
-                    {
-                        if ((dx < 0 && dy < 0) || (dx > 0 && dy > 0)) x = x + 1; else x = x - 1;
-                        py = py + 2 * (dx1 - dy1);
-                    }
-                    game.Draw(x, y, col);
-                }
-            }
         }
 
         public static void DrawColumn(this Game game, float p1x, float p1y, float p2y, Pixel col)
@@ -94,30 +34,10 @@ namespace voxelspace
             var lower = Math.Min(p1y, p2y);
             for (int i = 0; i < amount; i++)
             {
-                //game.Draw((int)game.Round(p1x), (int)game.Round(lower + i), interpolate(col2, col1, 1.0f * i * amountInverse));
                 game.Draw((int)p1x, (int)lower + i, interpolate(col2, col1, 1.0f * i * amountInverse));
             }
         }
 
-
-        public static IEnumerable<Pixel> GetColorLine(this Sprite sprite, Game g, float p1x, float p1y, float p2x, float p2y)
-        {
-            if (p1x == p2x && p1y == p2y)
-            {
-                yield return sprite.getColorAt(p1x, p1y);
-
-                yield break;
-            }
-
-            float end = Helpers.getLength(g, p1x, p1y, p2x, p2y);
-            float enddivider = 1.0f / end;
-            for (int i = 0; i < Math.Round(end, 0); i++)
-            {
-                float currentTargetX = Helpers.interpolate(p2x, p1x, i * enddivider);
-                float currentTargetY = Helpers.interpolate(p2y, p1y, i * enddivider);
-                yield return sprite.getColorAt(currentTargetX, currentTargetY);
-            }
-        }
         public static void DrawScaledSprite(this Game game, Point origin, Sprite sprite, int scaleX, int scaleY)
         {
             int halfwidth = sprite.Width / scaleX;
