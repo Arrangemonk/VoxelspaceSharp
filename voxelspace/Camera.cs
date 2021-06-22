@@ -14,6 +14,7 @@ namespace voxelspace
         public Game Game { get; private set; }
         public Sprite ColorMap { get; private set; }
         public Sprite HeightMap { get; private set; }
+        public Sprite SkyGradient { get; private set; }
         public float OriginX { get; set; }
         public float OriginY { get; set; }
         public float Angle { get; set; }
@@ -22,11 +23,12 @@ namespace voxelspace
         public float Height { get; set; }
         private Pixel ClrColor { get; set; }
 
-        public Camera(Game g, Sprite colormap, Sprite heightmap,Pixel clrColor, float originx, float originy,float fov = 90.0f)
+        public Camera(Game g, Sprite colormap, Sprite heightmap, Sprite skygradient, Pixel clrColor, float originx, float originy, float fov = 90.0f)
         {
             Game = g;
             ColorMap = colormap;
             HeightMap = heightmap;
+            SkyGradient = skygradient;
             ClrColor = clrColor;
             OriginX = originx;
             OriginY = originy;
@@ -51,14 +53,16 @@ namespace voxelspace
 
         public void Render(int horizon, int scale_height, int distance, int screen_width, int screen_height)
         {
-            Game.Clear(ClrColor);
-
-            var yBuffer = new float[screen_width];
-            var aBuffer = new float[screen_width];
-            var distanceInvers = 1.0f / distance;
-            var screen_width_inverse = 1.0f / screen_width;
+            float[] yBuffer = new float[screen_width];
+            float[] aBuffer = new float[screen_width];
+            float distanceInvers = 1.0f / distance;
+            float screen_width_inverse = 1.0f / screen_width;
+            float screen_height_inverse = 1.0f / screen_height;
             float sinphi = Game.Sin(GetRadian(Angle));
             float cosphi = Game.Cos(GetRadian(Angle));
+
+            //Game.Clear(ClrColor);
+            Helpers.DrawGradientNN(Game, Point.Origin, SkyGradient, screen_width, screen_height, screen_height_inverse);
             for (int i = 0; i < screen_width; i++)
             {
                 yBuffer[i] = screen_height;
@@ -80,17 +84,18 @@ namespace voxelspace
                 for (int x = 0; x < screen_width; x++)
                 {
 
-                    float tmp_pLeftX = pLeftX + (dx * x);
-                    float tmp_pLeftY = pLeftY + (dy * x);
+                    float tmp_pLeftX = pLeftX + (x * dx);
+                    float tmp_pLeftY = pLeftY + (x * dy);
 
-                    float heightOfHeightMap = HeightMap.getColorAtNN(tmp_pLeftX, tmp_pLeftY).R;
+                    float heightOfHeightMap = HeightMap.getHeightAtNN(tmp_pLeftX, tmp_pLeftY);
                     float height_on_screen = (Height - heightOfHeightMap) * zinverse + horizon;
 
                     if (height_on_screen < yBuffer[x])
                     {
                         Pixel color = ColorMap.getColorAtNN(tmp_pLeftX, tmp_pLeftY);
+                        Pixel skycolor = SkyGradient.getColorAtNN(0, (height_on_screen * SkyGradient.Height) * screen_height_inverse);
 
-                        color = Helpers.interpolate(ClrColor, color, Math.Min(fogamount * aBuffer[x],1.0f));
+                        color = Helpers.interpolate(skycolor, color, Math.Min(fogamount * aBuffer[x], 1.0f));
                         Game.DrawColumn(x, height_on_screen, yBuffer[x], color);
 
                         yBuffer[x] = height_on_screen;
@@ -99,17 +104,19 @@ namespace voxelspace
             }
         }
 
-        public void RenderHQ(int horizon, int scale_height, int distance, int screen_width, int screen_height)
+        public void RenderHQ(float horizon, float scale_height, float distance, int screen_width, int screen_height)
         {
-            Game.Clear(ClrColor);
+            float[] yBuffer = new float[screen_width];
+            Pixel[] cBuffer = new Pixel[screen_width];
+            bool[] vBuffer = new bool[screen_width];
+            float[] aBuffer = new float[screen_width];
+            float distanceInvers = 1.0f / distance;
+            float screen_width_inverse = 1.0f / screen_width;
+            float screen_height_inverse = 1.0f / screen_height;
+            Pixel groundColor = ColorMap.getColorAt(OriginX, OriginY);
 
-            var yBuffer = new float[screen_width];
-            var cBuffer = new Pixel[screen_width];
-            var vBuffer = new bool[screen_width];
-            var aBuffer = new float[screen_width];
-            var distanceInvers = 1.0f / distance;
-            var screen_width_inverse = 1.0f / screen_width;
-            var groundColor = ColorMap.getColorAt(OriginX, OriginY);
+            //Game.Clear(ClrColor);
+            Helpers.DrawGradient(Game, Point.Origin, SkyGradient, screen_width, screen_height, screen_height_inverse);
             for (int i = 0; i < screen_width; i++)
             {
                 yBuffer[i] = screen_height;
@@ -132,17 +139,18 @@ namespace voxelspace
                 float pRightY = ((-sinphi - cosphi) * z) + OriginY;
                 float dx = (pRightX - pLeftX) * screen_width_inverse;
                 float dy = (pRightY - pLeftY) * screen_width_inverse;
-                for (int x = 0; x < screen_width; x++)
+                for (float fx = 0; fx < screen_width; fx+= 1.0f)
                 {
-                    float tmp_pLeftX = pLeftX + (dx * x);
-                    float tmp_pLeftY = pLeftY + (dy * x);
-                    float heightOfHeightMap = HeightMap.getColorAt(tmp_pLeftX, tmp_pLeftY).R;
+                    float tmp_pLeftX = pLeftX + (fx * dx);
+                    float tmp_pLeftY = pLeftY + (fx * dy);
+                    float heightOfHeightMap = HeightMap.getHeightAt(tmp_pLeftX, tmp_pLeftY);
                     float height_on_screen = (Height - heightOfHeightMap) * zinverse + horizon;
 
+                    int x = (int)fx;
                     if (height_on_screen < yBuffer[x])
                     {
                         Pixel color = ColorMap.getColorAt(tmp_pLeftX, tmp_pLeftY);
-                        color = Helpers.interpolate(ClrColor, color, Math.Min(fogamount * aBuffer[x], 1.0f));
+                        color = Helpers.interpolate(SkyGradient.getColorAt(0, height_on_screen), color, Math.Min(fogamount * aBuffer[x], 1.0f));
                         Game.DrawColorColumn(x, height_on_screen, yBuffer[x], color, vBuffer[x] ? cBuffer[x] : color);
                         yBuffer[x] = height_on_screen;
                         cBuffer[x] = color;

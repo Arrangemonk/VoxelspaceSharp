@@ -48,6 +48,28 @@ namespace voxelspace
                     game.Draw(x + origin.X, y + origin.Y, sprite[x * scaleX, y * scaleY]);
         }
 
+        public static void DrawGradient(this Game game, Point origin, Sprite sprite, int width, int height,float heightInverse)
+        {
+            var scalefactor = sprite.Height * heightInverse;
+            for (int y = 0; y < height; y++)
+            {
+                var clr = sprite.getColorAt(0,y * scalefactor);
+                for (int x = 0; x < width; x++)
+                    game.Draw(x + origin.X, y + origin.Y, clr);
+            }
+        }
+
+        public static void DrawGradientNN(this Game game, Point origin, Sprite sprite, int width, int height, float heightInverse)
+        {
+            var scalefactor = sprite.Height * heightInverse;
+            for (int y = 0; y < height; y++)
+            {
+                var clr = sprite[0,(int)( y * scalefactor)];
+                for (int x = 0; x < width; x++)
+                    game.Draw(x + origin.X, y + origin.Y, clr);
+            }
+        }
+
         public static Pixel getColorAt(this Sprite sprite, float x, float y)
         {
             int intX = (int)x;
@@ -80,6 +102,38 @@ namespace voxelspace
             return sprite[Wrap(intX, maxX), Wrap(intY, maxY)];
 
         }
+
+        public static float getHeightAt(this Sprite sprite, float x, float y)
+        {
+            int intX = (int)x;
+            int intY = (int)y;
+            int intX1 = intX + 1;
+            int intY1 = intY + 1;
+            float fractx = Clamp(x - intX, 0, 1);
+            float fracty = Clamp(y - intY, 0, 1);
+            var maxX = sprite.Width;
+            var maxY = sprite.Height;
+
+            float height00 = sprite[Wrap(intX, maxX), Wrap(intY, maxY)].R;
+            float height01 = sprite[Wrap(intX, maxX), Wrap(intY1, maxY)].R;
+            float height10 = sprite[Wrap(intX1, maxX), Wrap(intY, maxY)].R;
+            float height11 = sprite[Wrap(intX1, maxX), Wrap(intY1, maxY)].R;
+
+            var heighthoz0 = interpolate(height10, height00, fractx);
+            var heighthoz1 = interpolate(height11, height01, fractx);
+
+            return interpolate(heighthoz1, heighthoz0, fracty);
+        }
+        public static float getHeightAtNN(this Sprite sprite, float x, float y)
+        {
+            int intX = (int)Math.Round(x);
+            int intY = (int)Math.Round(y);
+            var maxX = sprite.Width;
+            var maxY = sprite.Height;
+            return sprite[Wrap(intX, maxX), Wrap(intY, maxY)].R;
+
+        }
+
 
         public static float Clamp(float input, int min, int max)
         {

@@ -14,6 +14,7 @@ namespace voxelspace
 
         public Sprite Color { get; set; }
         public Sprite Height { get; set; }
+        public Sprite SkyGradient { get; set; }
         public Camera Camera { get; set; }
         public bool Debug { get; set; }
         public bool HQ { get; set; }
@@ -32,8 +33,9 @@ namespace voxelspace
             //new Pixel(102, 163, 225)
             Color = Sprite.Load("textures\\carebean.png");
             Height = Sprite.Load("textures\\carebeanheight.png");
+            SkyGradient = Sprite.Load("textures\\skygradient.png");
             Construct(320, 240, 2, 2);
-            Camera = new Camera(this, Color, Height, new Pixel(100, 200, 225), 512, 512);
+            Camera = new Camera(this, Color, Height,SkyGradient, new Pixel(100, 200, 225), 512, 512);
         }
 
         public override void OnKeyDown(Key k)
@@ -46,7 +48,7 @@ namespace voxelspace
                     break;
                 case Key.S:
                 case Key.Down:
-                    Camera.Speed = Math.Max(0, Camera.Speed - 1);
+                    Camera.Speed = Math.Max(-50f, Camera.Speed - 1);
                     break;
                 case Key.A:
                 case Key.Left:
