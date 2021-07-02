@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using OpenTK.Graphics.OpenGL;
 using PixelEngine;
 
 namespace voxelspace
@@ -18,6 +17,7 @@ namespace voxelspace
         public Camera Camera { get; set; }
         public bool Debug { get; set; }
         public bool HQ { get; set; }
+        public bool R { get; set; }
         public Key? LastKey { get; set; }
         public DateTime Stamp { get; set; }
 
@@ -30,12 +30,13 @@ namespace voxelspace
 
         public VoxelSpaceSharp() : base()
         {
+
             //new Pixel(102, 163, 225)
             Color = Sprite.Load("textures\\carebean.png");
             Height = Sprite.Load("textures\\carebeanheight.png");
             SkyGradient = Sprite.Load("textures\\skygradient.png");
             Construct(320, 240, 2, 2);
-            Camera = new Camera(this, Color, Height,SkyGradient, new Pixel(100, 200, 225), 512, 512);
+            Camera = new Camera(this, Color, Height, SkyGradient, ScreenWidth, ScreenHeight, 1000, 120, 512, 512);
         }
 
         public override void OnKeyDown(Key k)
@@ -52,11 +53,11 @@ namespace voxelspace
                     break;
                 case Key.A:
                 case Key.Left:
-                    Camera.Angle = ((Camera.Angle + 4f) + 360) % 360;
+                    Camera.UpdateAngle(true);
                     break;
                 case Key.D:
                 case Key.Right:
-                    Camera.Angle = ((Camera.Angle - 4f) + 360) % 360;
+                    Camera.UpdateAngle(false);
                     break;
                 case Key.Q:
                 case Key.Control:
@@ -75,11 +76,20 @@ namespace voxelspace
                         Stamp = DateTime.Now;
                         break;
                     }
-                case Key.Space:
+                case Key.F:
                     {
                         if (k == LastKey && DateTime.Now - Stamp < Threshold)
                             break;
                         HQ = !HQ;
+                        LastKey = k;
+                        Stamp = DateTime.Now;
+                        break;
+                    }
+                case Key.R:
+                    {
+                        if (k == LastKey && DateTime.Now - Stamp < Threshold)
+                            break;
+                        R = !R;
                         LastKey = k;
                         Stamp = DateTime.Now;
                         break;
@@ -92,14 +102,17 @@ namespace voxelspace
         public override void OnUpdate(float elapsed)
         {
             Camera.Update();
-            if (HQ)
-                Camera.RenderHQ(120, 60, 1000, ScreenWidth, ScreenHeight);
+            if (R)
+                Camera.RenderRayTraced(HQ);
+            else if (HQ)
+                Camera.RenderHQ();
             else
-                Camera.Render(120, 60, 1000, ScreenWidth, ScreenHeight);
+                Camera.Render();
             if (Debug)
             {
                 DrawText(Point.Origin, Camera.Speed.ToString(), Pixel.Presets.Red);
                 DrawText(new Point(0, 10), Camera.Angle.ToString(), Pixel.Presets.Red);
+                DrawText(new Point(0, 20), $"x: {Camera.OriginX} y: {Camera.OriginY}", Pixel.Presets.Red);
             }
         }
     }

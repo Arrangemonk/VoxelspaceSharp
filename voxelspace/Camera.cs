@@ -10,159 +10,271 @@ namespace voxelspace
 {
     public class Camera
     {
+        //static
         private static readonly float Pi = (float)Math.PI;
+        private static readonly float Pi2 = (float)(Math.PI * 2.0d);
+        private static readonly float pixelto01 = 1.0f / 255f;
+        private Vector rayOrigin;
         public Game Game { get; private set; }
         public Sprite ColorMap { get; private set; }
         public Sprite HeightMap { get; private set; }
         public Sprite SkyGradient { get; private set; }
-        public float OriginX { get; set; }
-        public float OriginY { get; set; }
+        public float OriginX { get; private set; }
+        public float OriginY { get; private set; }
+        public float Fov { get; private set; }
+        public float ScaleHeight { get; private set; }
+        public int ScreenWidth { get; private set; }
+        public int ScreenHeight { get; private set; }
+        public float Distance { get; private set; }
+        public int Horizon { get; private set; }
+        public float DistanceInvers { get; private set; }
+        public float ScreenWidthInverse { get; private set; }
+        public float ScreenHeightInverse { get; private set; }
+        public float SinPhi { get; set; }
+        public float CosPhi { get; set; }
+
+
+        //dynamic
         public float Angle { get; set; }
-        public float Fov { get; set; }
+        public float AngleV { get; set; }
         public float Speed { get; set; }
         public float Height { get; set; }
-        private Pixel ClrColor { get; set; }
 
-        public Camera(Game g, Sprite colormap, Sprite heightmap, Sprite skygradient, Pixel clrColor, float originx, float originy, float fov = 90.0f)
+        private ParallelOptions pos;
+
+        public Camera(Game g, Sprite colormap, Sprite heightmap, Sprite skygradient,
+            int screenWidth, int screenHeight, float distance, int horizon,
+            float originx, float originy, float fov = 90.0f)
         {
             Game = g;
             ColorMap = colormap;
             HeightMap = heightmap;
             SkyGradient = skygradient;
-            ClrColor = clrColor;
             OriginX = originx;
             OriginY = originy;
-            Fov = fov;
+            Fov = fov / 180f * Pi;
+            ScreenWidth = screenWidth;
+            ScreenHeight = screenHeight;
+            Distance = distance;
+            Horizon = horizon;
             Speed = 0;
-            Height = 120;
+            Height = 60;
+            ScaleHeight = 60;
+            Angle = 0;
+            SinPhi = Game.Sin(Angle);
+            CosPhi = Game.Cos(Angle);
+
+            DistanceInvers = 1.0f / Distance;
+            ScreenWidthInverse = 1.0f / ScreenWidth;
+            ScreenHeightInverse = 1.0f / ScreenHeight;
+
+            pos = new ParallelOptions();
+            pos.MaxDegreeOfParallelism = 4;
         }
 
         public void Update()
         {
-            float sinphi = Game.Sin(GetRadian(Angle));
-            float cosphi = Game.Cos(GetRadian(Angle));
-
-            OriginX -= sinphi * Speed;
-            OriginY -= cosphi * Speed;
+            OriginX -= SinPhi * Speed;
+            OriginX = Helpers.Wrap(OriginX, ColorMap.Width);
+            OriginY -= CosPhi * Speed;
+            OriginY = Helpers.Wrap(OriginY, ColorMap.Height);
+            rayOrigin = new Vector(OriginX, Height, OriginY);
         }
 
-        private float GetRadian(float degrees)
+        public void UpdateAngle(bool increase)
         {
-            return Pi * degrees / 180.0f;
+            Angle = (Angle + (increase ? 0.06981317f : -0.06981317f) + Pi2) % Pi2;
+            SinPhi = Game.Sin(Angle);
+            CosPhi = Game.Cos(Angle);
         }
 
-        public void Render(int horizon, int scale_height, int distance, int screen_width, int screen_height)
+        public void Render()
         {
-            float[] yBuffer = new float[screen_width];
-            float[] aBuffer = new float[screen_width];
-            float distanceInvers = 1.0f / distance;
-            float screen_width_inverse = 1.0f / screen_width;
-            float screen_height_inverse = 1.0f / screen_height;
-            float sinphi = Game.Sin(GetRadian(Angle));
-            float cosphi = Game.Cos(GetRadian(Angle));
+            float[] yBuffer = new float[ScreenWidth];
+            float[] aBuffer = new float[ScreenWidth];
+            var dz = 1.0f;
 
-            //Game.Clear(ClrColor);
-            Helpers.DrawGradientNN(Game, Point.Origin, SkyGradient, screen_width, screen_height, screen_height_inverse);
-            for (int i = 0; i < screen_width; i++)
+            Helpers.DrawGradientNN(Game, Point.Origin, SkyGradient, ScreenWidth, ScreenHeight, ScreenHeightInverse);
+            for (int i = 0; i < ScreenWidth; i++)
             {
-                yBuffer[i] = screen_height;
-                aBuffer[i] = 2 - Game.Sin(i * screen_width_inverse * Pi);
+                yBuffer[i] = ScreenHeight;
+                aBuffer[i] = 2 - Game.Sin(i * ScreenWidthInverse * Pi);
             }
 
-            for (float z = 1.0f; z < distance; z += 1.0f)
+            for (float z = 1.0f; z < Distance; z += dz)
             {
-                float zinverse = 1.0f * scale_height / z;
-                float fogamount = z * distanceInvers;
+                float zinverse = ScaleHeight / z;
+                float fogamount = z * DistanceInvers;
                 fogamount *= fogamount;
-                float pLeftX = ((-cosphi - sinphi) * z) + OriginX;
-                float pLeftY = ((sinphi - cosphi) * z) + OriginY;
-                float pRightX = ((cosphi - sinphi) * z) + OriginX;
-                float pRightY = ((-sinphi - cosphi) * z) + OriginY;
-
-                float dx = (pRightX - pLeftX) * screen_width_inverse;
-                float dy = (pRightY - pLeftY) * screen_width_inverse;
-                for (int x = 0; x < screen_width; x++)
+                float pLeftX = ((-CosPhi - SinPhi) * z) + OriginX;
+                float pLeftY = ((SinPhi - CosPhi) * z) + OriginY;
+                float pRightX = ((CosPhi - SinPhi) * z) + OriginX;
+                float pRightY = ((-SinPhi - CosPhi) * z) + OriginY;
+                float dx = (pRightX - pLeftX) * ScreenWidthInverse;
+                float dy = (pRightY - pLeftY) * ScreenWidthInverse;
+                for (int x = 0; x < ScreenWidth; x++)
                 {
 
                     float tmp_pLeftX = pLeftX + (x * dx);
                     float tmp_pLeftY = pLeftY + (x * dy);
 
-                    float heightOfHeightMap = HeightMap.getHeightAtNN(tmp_pLeftX, tmp_pLeftY);
-                    float height_on_screen = (Height - heightOfHeightMap) * zinverse + horizon;
+                    float heightOfHeightMap = getHeightMapAtNN(tmp_pLeftX, tmp_pLeftY);
+                    float height_on_screen = (Height - heightOfHeightMap) * zinverse + Horizon;
 
                     if (height_on_screen < yBuffer[x])
                     {
                         Pixel color = ColorMap.getColorAtNN(tmp_pLeftX, tmp_pLeftY);
-                        Pixel skycolor = SkyGradient.getColorAtNN(0, (height_on_screen * SkyGradient.Height) * screen_height_inverse);
-
+                        Pixel skycolor = SkyGradient.getColorAtNN(0, (height_on_screen * SkyGradient.Height) * ScreenHeightInverse);
                         color = Helpers.interpolate(skycolor, color, Math.Min(fogamount * aBuffer[x], 1.0f));
                         Game.DrawColumn(x, height_on_screen, yBuffer[x], color);
-
                         yBuffer[x] = height_on_screen;
                     }
                 }
+                dz += 0.005f;
             }
         }
 
-        public void RenderHQ(float horizon, float scale_height, float distance, int screen_width, int screen_height)
+        public void RenderHQ()
         {
-            float[] yBuffer = new float[screen_width];
-            Pixel[] cBuffer = new Pixel[screen_width];
-            bool[] vBuffer = new bool[screen_width];
-            float[] aBuffer = new float[screen_width];
-            float distanceInvers = 1.0f / distance;
-            float screen_width_inverse = 1.0f / screen_width;
-            float screen_height_inverse = 1.0f / screen_height;
-            Pixel groundColor = ColorMap.getColorAt(OriginX, OriginY);
 
-            //Game.Clear(ClrColor);
-            Helpers.DrawGradient(Game, Point.Origin, SkyGradient, screen_width, screen_height, screen_height_inverse);
-            for (int i = 0; i < screen_width; i++)
+            float[] yBuffer = new float[ScreenWidth];
+            Pixel[] cBuffer = new Pixel[ScreenWidth];
+            float[] aBuffer = new float[ScreenWidth];
+            Pixel groundColor = ColorMap.getColorAt(OriginX, OriginY);
+            var dz = 1.0f;
+
+            Helpers.DrawGradient(Game, Point.Origin, SkyGradient, ScreenWidth, ScreenHeight, ScreenHeightInverse);
+            for (int i = 0; i < ScreenWidth; i++)
             {
-                yBuffer[i] = screen_height;
+                yBuffer[i] = ScreenHeight;
                 cBuffer[i] = groundColor;
-                vBuffer[i] = true;
-                aBuffer[i] = 2 - Game.Sin(i * screen_width_inverse * Pi);
+                aBuffer[i] = 2 - Game.Sin(i * ScreenWidthInverse * Pi);
             }
 
-            float sinphi = Game.Sin(GetRadian(Angle));
-            float cosphi = Game.Cos(GetRadian(Angle));
-
-            for (float z = 1.0f; z < distance; z += 1.0f)
+            for (float z = 1.0f; z < Distance; z += dz)
             {
-                float zinverse = 1.0f * scale_height / z;
-                float fogamount = z * distanceInvers;
+                float zinverse = ScaleHeight / z;
+                float fogamount = z * DistanceInvers;
                 fogamount *= fogamount;
-                float pLeftX = ((-cosphi - sinphi) * z) + OriginX;
-                float pLeftY = ((sinphi - cosphi) * z) + OriginY;
-                float pRightX = ((cosphi - sinphi) * z) + OriginX;
-                float pRightY = ((-sinphi - cosphi) * z) + OriginY;
-                float dx = (pRightX - pLeftX) * screen_width_inverse;
-                float dy = (pRightY - pLeftY) * screen_width_inverse;
-                for (float fx = 0; fx < screen_width; fx+= 1.0f)
+                float pLeftX = ((-CosPhi - SinPhi) * z) + OriginX;
+                float pLeftY = ((SinPhi - CosPhi) * z) + OriginY;
+                float pRightX = ((CosPhi - SinPhi) * z) + OriginX;
+                float pRightY = ((-SinPhi - CosPhi) * z) + OriginY;
+                float dx = (pRightX - pLeftX) * ScreenWidthInverse;
+                float dy = (pRightY - pLeftY) * ScreenWidthInverse;
+
+                Parallel.For(0, ScreenWidth, pos, x =>
+                //for (float fx = 0; fx < ScreenWidth; fx += 1.0f)
                 {
+                    var fx = 1.0f * x;
                     float tmp_pLeftX = pLeftX + (fx * dx);
                     float tmp_pLeftY = pLeftY + (fx * dy);
-                    float heightOfHeightMap = HeightMap.getHeightAt(tmp_pLeftX, tmp_pLeftY);
-                    float height_on_screen = (Height - heightOfHeightMap) * zinverse + horizon;
+                    float heightOfHeightMap = getHeightMapAt(tmp_pLeftX, tmp_pLeftY);
+                    float height_on_screen = (Height - heightOfHeightMap) * zinverse + Horizon;
 
-                    int x = (int)fx;
+                    Pixel color = ColorMap.getColorAt(tmp_pLeftX, tmp_pLeftY);
+                    Pixel skycolor = SkyGradient.getColorAt(0, height_on_screen);
+                    color = Helpers.interpolate(skycolor, color, Math.Min(fogamount * aBuffer[x], 1.0f));
                     if (height_on_screen < yBuffer[x])
                     {
-                        Pixel color = ColorMap.getColorAt(tmp_pLeftX, tmp_pLeftY);
-                        color = Helpers.interpolate(SkyGradient.getColorAt(0, height_on_screen), color, Math.Min(fogamount * aBuffer[x], 1.0f));
-                        Game.DrawColorColumn(x, height_on_screen, yBuffer[x], color, vBuffer[x] ? cBuffer[x] : color);
+                        Game.DrawColorColumn(x, height_on_screen, yBuffer[x], color, cBuffer[x]);
                         yBuffer[x] = height_on_screen;
-                        cBuffer[x] = color;
-                        vBuffer[x] = true;
                     }
-                    else
-                    {
-                        vBuffer[x] = false;
-                    }
-                }
+                    cBuffer[x] = color;
+                });
+                dz += 0.005f;
             }
         }
 
+        public void RenderRayTraced(bool March)
+        {
+            Parallel.For(0, ScreenHeight, y =>
+            {
+                var skyColor = SkyColor(y);
+                for (int x = 0; x < ScreenWidth; x++)
+                {
+                    Vector direction = GenerateRayFromPixel(x, y);
+                    bool result;
+                    var distance = March 
+                    ? RayMarch(direction, out result) 
+                    : Trace(direction, out result);
+                    if (result)
+                        Game.Draw(x, y, terrainColor(direction, skyColor, distance));
+                    else
+                        Game.Draw(x, y, skyColor);
+                }
+            }
+            );
+        }
+
+        float Trace(Vector direction, out bool result)
+        {
+            float dd = 0.01f;
+            float olddist = 4;
+            result = false;
+            for (float dist = olddist; dist < Distance; dist += dd)
+            {
+                Vector rayPoint = Target(direction, dist);
+                float mapResult = getHeightMapAt(rayPoint.X, rayPoint.Z);
+                result = rayPoint.Y < mapResult;
+                dd += 0.005f;
+                olddist = dist;
+                if(result)
+                    break;
+            }
+            return olddist;
+        }
+
+        float RayMarch(Vector direction, out bool result)
+        {
+            float marchDistance;
+            const int maxITers = 1000;
+            int iters = 0;
+            bool caught = false;
+            float finaldistance = Distance;
+            for (float dist = 4; dist < Distance; dist += marchDistance)
+            {
+                Vector rayPoint = Target(direction, dist);
+                float mapResult = getHeightMapAt(rayPoint.X, rayPoint.Z);
+                marchDistance = (rayPoint.Y - mapResult);
+                caught = Math.Abs(marchDistance) < (0.01f * dist );
+                iters++;
+                finaldistance = dist;
+                if (caught || iters > maxITers)
+                    break;
+            }
+                result = caught;
+                return finaldistance;
+            }
+
+            private Pixel terrainColor(Vector direction, Pixel sky, float distance)
+            {
+                Vector p = Target(direction, distance);
+
+                var terrain = getColorMapAt(p.X, p.Z);
+                return Helpers.interpolate(sky, terrain, Math.Min(distance * DistanceInvers, 1.0f));
+            }
+
+            private Vector Target(Vector direction, float distance)
+            => rayOrigin + (direction * distance);
+
+            private Pixel getColorMapAt(float x, float y) => Helpers.getColorAt(ColorMap, x, y);
+            private float getHeightMapAt(float x, float y) => Helpers.getHeightAt(HeightMap, x, y) * pixelto01 * ScaleHeight;
+        private float getHeightMapAtNN(float x, float y) => Helpers.getHeightAtNN(HeightMap, x, y) * pixelto01 * ScaleHeight;
+
+        public Vector GenerateRayFromPixel(int x, int y)
+            {
+                //float wtf = Game.Tan(Fov * 0.5f);
+                float aspect = ScreenWidth * ScreenHeightInverse;
+                float xs = (1f - 2f * ((0.5f + x) * ScreenWidthInverse)) * aspect;
+                float ys = (1f - 2f * ((0.5f + y) * ScreenHeightInverse));
+                var pixeldirection = Vector.Normalize(new Vector(xs, ys, -1f));
+                return Vector.Normalize(Helpers.rotatevecY(Game, pixeldirection, Angle));
+            }
+
+            public Pixel SkyColor(int y)
+            {
+                return SkyGradient.getColorAtNN(0, y * SkyGradient.Height * ScreenHeightInverse);
+            }
+        }
     }
-}
