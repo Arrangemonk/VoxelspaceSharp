@@ -78,7 +78,7 @@ namespace voxelspace
             OriginX = Helpers.Wrap(OriginX, ColorMap.Width);
             OriginY -= CosPhi * Speed;
             OriginY = Helpers.Wrap(OriginY, ColorMap.Height);
-            rayOrigin = new Vector(OriginX, Height*0.5f, OriginY);
+            rayOrigin = new Vector(OriginX, Height * 0.5f, OriginY);
         }
 
         public void UpdateAngle(bool increase)
@@ -186,7 +186,7 @@ namespace voxelspace
             }
         }
 
-        public void RenderRayTraced(bool March)
+        public void RenderRayTraced(bool trace)
         {
             Parallel.For(0, ScreenHeight, y =>
             {
@@ -195,9 +195,9 @@ namespace voxelspace
                 {
                     Vector direction = GenerateRayFromPixel(x, y);
                     bool result;
-                    var distance = March
-                    ? RayMarch(direction, out result)
-                    : Trace(direction, out result);
+                    var distance = trace
+                    ? Trace(direction, out result)
+                    : RayMarch(direction, out result);
                     if (result)
                         Game.Draw(x, y, terrainColor(direction, skyColor, distance));
                     else
@@ -225,26 +225,19 @@ namespace voxelspace
             return olddist;
         }
 
+        //https://www.shadertoy.com/view/MdX3Rr
         float RayMarch(Vector direction, out bool result)
         {
-            float marchDistance;
-            const int maxITers = 1000;
-            int iters = 0;
-            bool caught = false;
-            float finaldistance = Distance;
-            for (float dist = 4; dist < Distance; dist += marchDistance)
+            float t = 4;
+            for (int i = 0; i < 96; i++)
             {
-                Vector rayPoint = Target(direction, dist);
-                float mapResult = getHeightMapAt(rayPoint.X, rayPoint.Z) * 0.5f;
-                marchDistance = (rayPoint.Y - mapResult);
-                caught = Math.Abs(marchDistance) < (0.01f * dist);
-                iters++;
-                finaldistance = dist;
-                if (caught || iters > maxITers)
-                    break;
+                Vector rayPoint = Target(direction, t);
+                float h = rayPoint.Y - (getHeightMapAt(rayPoint.X, rayPoint.Z) * 0.5f);
+                if (Math.Abs(h) < (0.0015 * t) || t > Distance) break;
+                t += 0.4f * h;
             }
-            result = caught;
-            return finaldistance;
+            result = t < Distance;
+            return t;
         }
 
         private Pixel terrainColor(Vector direction, Pixel sky, float distance)
