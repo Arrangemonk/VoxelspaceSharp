@@ -58,8 +58,8 @@ namespace voxelspace
             Distance = distance;
             Horizon = horizon;
             Speed = 0;
-            Height = 60;
-            ScaleHeight = 60;
+            Height = 80;
+            ScaleHeight = 80;
             Angle = 0;
             SinPhi = Game.Sin(Angle);
             CosPhi = Game.Cos(Angle);
@@ -78,7 +78,7 @@ namespace voxelspace
             OriginX = Helpers.Wrap(OriginX, ColorMap.Width);
             OriginY -= CosPhi * Speed;
             OriginY = Helpers.Wrap(OriginY, ColorMap.Height);
-            rayOrigin = new Vector(OriginX, Height, OriginY);
+            rayOrigin = new Vector(OriginX, Height*0.5f, OriginY);
         }
 
         public void UpdateAngle(bool increase)
@@ -195,8 +195,8 @@ namespace voxelspace
                 {
                     Vector direction = GenerateRayFromPixel(x, y);
                     bool result;
-                    var distance = March 
-                    ? RayMarch(direction, out result) 
+                    var distance = March
+                    ? RayMarch(direction, out result)
                     : Trace(direction, out result);
                     if (result)
                         Game.Draw(x, y, terrainColor(direction, skyColor, distance));
@@ -215,11 +215,11 @@ namespace voxelspace
             for (float dist = olddist; dist < Distance; dist += dd)
             {
                 Vector rayPoint = Target(direction, dist);
-                float mapResult = getHeightMapAt(rayPoint.X, rayPoint.Z);
+                float mapResult = getHeightMapAt(rayPoint.X, rayPoint.Z) * 0.5f;
                 result = rayPoint.Y < mapResult;
                 dd += 0.005f;
                 olddist = dist;
-                if(result)
+                if (result)
                     break;
             }
             return olddist;
@@ -235,46 +235,46 @@ namespace voxelspace
             for (float dist = 4; dist < Distance; dist += marchDistance)
             {
                 Vector rayPoint = Target(direction, dist);
-                float mapResult = getHeightMapAt(rayPoint.X, rayPoint.Z);
+                float mapResult = getHeightMapAt(rayPoint.X, rayPoint.Z) * 0.5f;
                 marchDistance = (rayPoint.Y - mapResult);
-                caught = Math.Abs(marchDistance) < (0.01f * dist );
+                caught = Math.Abs(marchDistance) < (0.01f * dist);
                 iters++;
                 finaldistance = dist;
                 if (caught || iters > maxITers)
                     break;
             }
-                result = caught;
-                return finaldistance;
-            }
+            result = caught;
+            return finaldistance;
+        }
 
-            private Pixel terrainColor(Vector direction, Pixel sky, float distance)
-            {
-                Vector p = Target(direction, distance);
+        private Pixel terrainColor(Vector direction, Pixel sky, float distance)
+        {
+            Vector p = Target(direction, distance);
 
-                var terrain = getColorMapAt(p.X, p.Z);
-                return Helpers.interpolate(sky, terrain, Math.Min(distance * DistanceInvers, 1.0f));
-            }
+            var terrain = getColorMapAt(p.X, p.Z);
+            return Helpers.interpolate(sky, terrain, Math.Min(distance * DistanceInvers, 1.0f));
+        }
 
-            private Vector Target(Vector direction, float distance)
-            => rayOrigin + (direction * distance);
+        private Vector Target(Vector direction, float distance)
+        => rayOrigin + (direction * distance);
 
-            private Pixel getColorMapAt(float x, float y) => Helpers.getColorAt(ColorMap, x, y);
-            private float getHeightMapAt(float x, float y) => Helpers.getHeightAt(HeightMap, x, y) * pixelto01 * ScaleHeight;
+        private Pixel getColorMapAt(float x, float y) => Helpers.getColorAt(ColorMap, x, y);
+        private float getHeightMapAt(float x, float y) => Helpers.getHeightAt(HeightMap, x, y) * pixelto01 * ScaleHeight;
         private float getHeightMapAtNN(float x, float y) => Helpers.getHeightAtNN(HeightMap, x, y) * pixelto01 * ScaleHeight;
 
         public Vector GenerateRayFromPixel(int x, int y)
-            {
-                //float wtf = Game.Tan(Fov * 0.5f);
-                float aspect = ScreenWidth * ScreenHeightInverse;
-                float xs = (1f - 2f * ((0.5f + x) * ScreenWidthInverse)) * aspect;
-                float ys = (1f - 2f * ((0.5f + y) * ScreenHeightInverse));
-                var pixeldirection = Vector.Normalize(new Vector(xs, ys, -1f));
-                return Vector.Normalize(Helpers.rotatevecY(Game, pixeldirection, Angle));
-            }
+        {
+            //float wtf = Game.Tan(Fov * 0.5f);
+            float aspect = ScreenWidth * ScreenHeightInverse;
+            float xs = (1f - 2f * ((0.5f + x) * ScreenWidthInverse)) * aspect;
+            float ys = (1f - 2f * ((0.5f + y) * ScreenHeightInverse));
+            var pixeldirection = Vector.Normalize(new Vector(xs, ys, -1f));
+            return Vector.Normalize(Helpers.rotatevecY(Game, pixeldirection, Angle));
+        }
 
-            public Pixel SkyColor(int y)
-            {
-                return SkyGradient.getColorAtNN(0, y * SkyGradient.Height * ScreenHeightInverse);
-            }
+        public Pixel SkyColor(int y)
+        {
+            return SkyGradient.getColorAtNN(0, y * SkyGradient.Height * ScreenHeightInverse);
         }
     }
+}
